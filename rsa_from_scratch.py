@@ -1,24 +1,24 @@
 import random
 from Crypto.Util.number import getPrime
 
-def gcd(a, b):
+def gcd(candidate_exponent, totient_phi):
     """
-    Euclidean algorithm to find the greatest common divisor of a and b.
+    Euclidean algorithm to find the greatest common divisor of candidate_exponent and totient_phi.
     """
-    while b != 0:
-        a, b = b, a % b
-    return a
+    while totient_phi != 0:
+        candidate_exponent, totient_phi = totient_phi, candidate_exponent % totient_phi
+    return candidate_exponent
 
-def mod_inverse(a, m):
+def mod_inverse(encryption_exponent_e, totient_phi):
     """
-    Extended Euclidean algorithm to find the modular inverse of a under m.
+    Extended Euclidean algorithm to find the modular inverse of encryption_exponent_e under totient_phi.
     """
-    m0, x0, x1 = m, 0, 1
-    if m == 1:
+    m0, x0, x1 = totient_phi, 0, 1
+    if totient_phi == 1:
         return 0
-    while a > 1:
-        q = a // m
-        m, a = a % m, m
+    while encryption_exponent_e > 1:
+        q = encryption_exponent_e // totient_phi
+        totient_phi, encryption_exponent_e = encryption_exponent_e % totient_phi, totient_phi
         x0, x1 = x1 - q * x0, x0
     if x1 < 0:
         x1 += m0
