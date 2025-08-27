@@ -67,9 +67,6 @@ def decrypt(pk, ciphertext):
     return ''.join(plain)
 
 if __name__ == '__main__':
-    '''
-    Detect if the script is being run directly by the user
-    '''
     print("RSA Encrypter/ Decrypter")
 
     choice = input("Choose an option: (1) Encrypt/Decrypt a new message or (2) Decrypt a message with a key: ")
@@ -103,12 +100,6 @@ if __name__ == '__main__':
             exit()
 
         try:
-            # This assumes the numbers are separated by some non-digit character, 
-            # or are otherwise parsable. For this simple case, let's assume they are just concatenated.
-            # A better implementation would require a separator.
-            # We will assume the user copies the full string of numbers.
-            # This part is tricky without a defined format for the encrypted message.
-            # Let's ask the user to provide the numbers separated by spaces.
             encrypted_msg_str = input("Enter the encrypted message (numbers separated by spaces): ")
             encrypted_msg = [int(x) for x in encrypted_msg_str.split()]
         except ValueError:
