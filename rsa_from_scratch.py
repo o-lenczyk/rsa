@@ -1,55 +1,5 @@
 import random
-
-def is_prime(n, k=128):
-    """
-    Test if a number is prime using the Miller-Rabin primality test.
-    k is the number of rounds of testing to perform.
-    """
-    if n == 2 or n == 3:
-        return True
-    if n <= 1 or n % 2 == 0:
-        return False
-    
-    # Find odd_part and power_of_two such that n - 1 = odd_part * 2^power_of_two
-    power_of_two = 0
-    odd_part = n - 1
-    while odd_part & 1 == 0:
-        power_of_two += 1
-        odd_part //= 2
-    
-    # Perform k rounds of testing
-    for _ in range(k):
-        a = random.randrange(2, n - 1)
-        x = pow(a, odd_part, n)
-        if x != 1 and x != n - 1:
-            j = 1
-            while j < power_of_two and x != n - 1:
-                x = pow(x, 2, n)
-                if x == 1:
-                    return False
-                j += 1
-            if x != n - 1:
-                return False
-    return True
-
-def generate_prime_candidate(length):
-    """
-    Generate an odd integer randomly.
-    """
-    p = random.getrandbits(length)
-    # Apply a mask to set MSB and LSB to 1
-    p |= (1 << length - 1) | 1
-    return p
-
-def generate_prime_number(length=1024):
-    """
-    Generate a prime number of a given bit length.
-    """
-    p = 4
-    # Keep generating while the primality test fails
-    while not is_prime(p):
-        p = generate_prime_candidate(length)
-    return p
+from Crypto.Util.number import getPrime
 
 def gcd(a, b):
     """
@@ -78,9 +28,7 @@ def generate_keypair(p, q):
     """
     Generate a public/private key pair from primes p and q.
     """
-    if not (is_prime(p) and is_prime(q)):
-        raise ValueError('Both numbers must be prime.')
-    elif p == q:
+    if p == q:
         raise ValueError('p and q cannot be equal.')
     
     n = p * q
@@ -127,8 +75,8 @@ if __name__ == '__main__':
     choice = input("Choose an option: (1) Encrypt/Decrypt a new message or (2) Decrypt a message with a key: ")
 
     if choice == '1':
-        p = generate_prime_number(64)
-        q = generate_prime_number(64)
+        p = getPrime(64)
+        q = getPrime(64)
         
         public, private = generate_keypair(p, q)
         
