@@ -60,9 +60,9 @@ def encrypt(pk, plaintext):
 
 def decrypt(pk, ciphertext):
     # Unpack the key into its components
-    e, n = pk
+    d, n = pk
     # Generate the plaintext based on the ciphertext and key using a^b mod m
-    plain = [chr(pow(char, e, n)) for char in ciphertext]
+    plain = [chr(pow(char, d, n)) for char in ciphertext]
     # Return the array of bytes as a string
     return ''.join(plain)
 
