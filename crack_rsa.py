@@ -2,6 +2,7 @@ import time
 from rsa_from_scratch import generate_keypair, encrypt, decrypt
 from Crypto.Util.number import getPrime
 from sympy.ntheory import factorint
+import gmpy2
 
 def pollards_rho(n):
     # Simple Pollard's Rho implementation for factoring n
@@ -61,37 +62,51 @@ def break_rsa_trial_division(n):
     print("Failed to factor n with trial division.")
     return None
 
+def break_rsa_gmpy2(n):
+    print("Factoring with gmpy2 (trial division using primes)...")
+    factor = gmpy2.next_prime(1)
+    while factor * factor <= n:
+        if n % factor == 0:
+            return int(factor), int(n // factor)
+        factor = gmpy2.next_prime(factor)
+    print("Failed to factor n with gmpy2.")
+    return None
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
     print("1. Trial division (pure Python, slow for large numbers)")
-    print("2. Pollard's Rho (custom implementation)")
-    print("3. SymPy factorint (auto algorithm selection)")
-    print("4. SymPy factorint (trial division only)")
-    print("5. SymPy factorint (Pollard's Rho only)")
-    print("6. SymPy factorint (Pollard's p-1 only)")
-    print("7. SymPy factorint (ECM only)")
-    algo_choice = input("Enter 1-7: ").strip()
+    print("2. gmpy2 (trial division using primes)")
+    print("3. Pollard's Rho (custom implementation)")
+    print("4. SymPy factorint (auto algorithm selection)")
+    print("5. SymPy factorint (trial division only)")
+    print("6. SymPy factorint (Pollard's Rho only)")
+    print("7. SymPy factorint (Pollard's p-1 only)")
+    print("8. SymPy factorint (ECM only)")
+    algo_choice = input("Enter 1-8: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
         algo_name = "Trial division (pure Python)"
     elif algo_choice == "2":
+        break_rsa = break_rsa_gmpy2
+        algo_name = "gmpy2 (trial division using primes)"
+    elif algo_choice == "3":
         break_rsa = break_rsa_pollards_rho
         algo_name = "Pollard's Rho"
-    elif algo_choice == "3":
+    elif algo_choice == "4":
         break_rsa = break_rsa_sympy
         algo_name = "SymPy factorint (auto)"
-    elif algo_choice == "4":
+    elif algo_choice == "5":
         break_rsa = lambda n: break_rsa_sympy_custom(n, trial=True)
         algo_name = "SymPy factorint (trial division only)"
-    elif algo_choice == "5":
+    elif algo_choice == "6":
         break_rsa = lambda n: break_rsa_sympy_custom(n, rho=True)
         algo_name = "SymPy factorint (Pollard's Rho only)"
-    elif algo_choice == "6":
+    elif algo_choice == "7":
         break_rsa = lambda n: break_rsa_sympy_custom(n, pm1=True)
         algo_name = "SymPy factorint (Pollard's p-1 only)"
-    elif algo_choice == "7":
+    elif algo_choice == "8":
         break_rsa = lambda n: break_rsa_sympy_custom(n, ecm=True)
         algo_name = "SymPy factorint (ECM only)"
     else:
