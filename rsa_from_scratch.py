@@ -72,8 +72,14 @@ if __name__ == '__main__':
     choice = input("Choose an option: (1) Encrypt/Decrypt a new message or (2) Decrypt a message with a key: ")
 
     if choice == '1':
-        p = getPrime(64)
-        q = getPrime(64)
+        try:
+            bits = int(input("Enter bit size for p and q (e.g., 8, 16, 32, 64): "))
+        except ValueError:
+            print("Invalid bit size. Using default 64 bits.")
+            bits = 64
+
+        p = getPrime(bits)
+        q = getPrime(bits)
         
         public, private = generate_keypair(p, q)
         
