@@ -72,6 +72,26 @@ def break_rsa_gmpy2(n):
     print("Failed to factor n with gmpy2.")
     return None
 
+def break_rsa_sage(n):
+    try:
+        from sage.all import factor
+    except ImportError:
+        print("SageMath is not installed or not available in this environment.")
+        return None
+    print("Factoring with SageMath...")
+    factors = factor(n)
+    primes = [int(f[0]) for f in factors]
+    if len(primes) == 2:
+        return primes[0], primes[1]
+    elif len(primes) > 2:
+        # Try to find two factors that multiply to n
+        for i in range(len(primes)):
+            for j in range(i+1, len(primes)):
+                if primes[i] * primes[j] == n:
+                    return primes[i], primes[j]
+    print("Failed to factor n with SageMath.")
+    return None
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
@@ -83,7 +103,8 @@ if __name__ == "__main__":
     print("6. SymPy factorint (Pollard's Rho only)")
     print("7. SymPy factorint (Pollard's p-1 only)")
     print("8. SymPy factorint (ECM only)")
-    algo_choice = input("Enter 1-8: ").strip()
+    print("9. SageMath (factorization using Sage)")
+    algo_choice = input("Enter 1-9: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -109,6 +130,9 @@ if __name__ == "__main__":
     elif algo_choice == "8":
         break_rsa = lambda n: break_rsa_sympy_custom(n, ecm=True)
         algo_name = "SymPy factorint (ECM only)"
+    elif algo_choice == "9":
+        break_rsa = break_rsa_sage
+        algo_name = "SageMath (factorization using Sage)"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division
