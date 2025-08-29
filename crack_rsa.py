@@ -115,6 +115,26 @@ def break_rsa_cypari2(n):
     print("Failed to factor n with cypari2.")
     return None
 
+def break_rsa_flint(n):
+    try:
+        from flint import fmpz
+    except ImportError:
+        print("python-flint is not installed. Please install it with 'pip install python-flint'.")
+        return None
+    print("Factoring with python-flint...")
+    factors = fmpz(n).factor()
+    # factors is a list of (prime, exponent) tuples
+    if not factors:
+        print("python-flint failed to find any factors.")
+        return None
+    p = factors[0][0]
+    if n % p == 0:
+        q = n // p
+        if p * q == n and p != 1 and q != 1:
+            return int(p), int(q)
+    print("Failed to factor n with python-flint.")
+    return None
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
@@ -128,7 +148,8 @@ if __name__ == "__main__":
     print("8. SymPy factorint (ECM only)")
     print("9. SageMath (factorization using Sage)")
     print("10. cypari2 (Pari/GP)")
-    algo_choice = input("Enter 1-10: ").strip()
+    print("11. python-flint")
+    algo_choice = input("Enter 1-11: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -160,6 +181,9 @@ if __name__ == "__main__":
     elif algo_choice == "10":
         break_rsa = break_rsa_cypari2
         algo_name = "cypari2 (Pari/GP)"
+    elif algo_choice == "11":
+        break_rsa = break_rsa_flint
+        algo_name = "python-flint"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division

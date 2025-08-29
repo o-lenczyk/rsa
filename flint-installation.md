@@ -1,0 +1,1 @@
+1. sudo apt-get update && sudo apt-get install -y libflint-dev libgmp-dev libmpfr-dev
