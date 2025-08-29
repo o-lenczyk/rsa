@@ -92,6 +92,29 @@ def break_rsa_sage(n):
     print("Failed to factor n with SageMath.")
     return None
 
+def break_rsa_cypari2(n):
+    try:
+        import cypari2
+    except ImportError:
+        print("cypari2 is not installed. Please install it with 'pip install cypari2'.")
+        return None
+    pari = cypari2.Pari()
+    print("Factoring with cypari2...")
+    factors = pari.factor(n)
+    # factors is a Gen object behaving like a list of [prime, exponent] pairs
+    if not factors:
+        print("cypari2 failed to find any factors.")
+        return None
+    # Take the first prime factor found
+    p = int(factors[0][0])
+    if n % p == 0:
+        q = n // p
+        # Sanity check to ensure we have two distinct factors other than 1
+        if p * q == n and p != 1 and q != 1:
+            return p, q
+    print("Failed to factor n with cypari2.")
+    return None
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
@@ -104,7 +127,8 @@ if __name__ == "__main__":
     print("7. SymPy factorint (Pollard's p-1 only)")
     print("8. SymPy factorint (ECM only)")
     print("9. SageMath (factorization using Sage)")
-    algo_choice = input("Enter 1-9: ").strip()
+    print("10. cypari2 (Pari/GP)")
+    algo_choice = input("Enter 1-10: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -133,6 +157,9 @@ if __name__ == "__main__":
     elif algo_choice == "9":
         break_rsa = break_rsa_sage
         algo_name = "SageMath (factorization using Sage)"
+    elif algo_choice == "10":
+        break_rsa = break_rsa_cypari2
+        algo_name = "cypari2 (Pari/GP)"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division
