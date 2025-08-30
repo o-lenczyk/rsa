@@ -1,6 +1,7 @@
 import time
 import subprocess
 import re
+from factordb.factordb import FactorDB
 from rsa_from_scratch import generate_keypair, encrypt, decrypt
 from Crypto.Util.number import getPrime
 from sympy.ntheory import factorint
@@ -182,6 +183,28 @@ def break_rsa_cado_nfs(n):
         print(f"An unexpected error occurred while running CADO-NFS: {e}")
         return None
 
+def break_rsa_factordb(n):
+    print("Factoring with factordb...")
+    try:
+        f = FactorDB(n)
+        f.connect()
+        factors = f.get_factor_list()
+        if len(factors) == 2:
+            p = factors[0]
+            q = factors[1]
+            if p * q == n:
+                return p, q
+        elif len(factors) > 2:
+             for i in range(len(factors)):
+                for j in range(i + 1, len(factors)):
+                    if factors[i] * factors[j] == n:
+                        return factors[i], factors[j]
+        print(f"Failed to parse factors from factordb output.")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred while running factordb: {e}")
+        return None
+
 def break_rsa_yafu(n):
     print("Factoring with YAFU...")
     try:
@@ -239,7 +262,8 @@ if __name__ == "__main__":
     print("11. python-flint")
     print("12. YAFU (standalone tool)")
     print("13. CADO-NFS (standalone tool)")
-    algo_choice = input("Enter 1-13: ").strip()
+    print("14. FactorDB (online database)")
+    algo_choice = input("Enter 1-14: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -280,6 +304,9 @@ if __name__ == "__main__":
     elif algo_choice == "13":
         break_rsa = break_rsa_cado_nfs
         algo_name = "CADO-NFS"
+    elif algo_choice == "14":
+        break_rsa = break_rsa_factordb
+        algo_name = "FactorDB"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division

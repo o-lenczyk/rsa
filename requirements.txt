@@ -5,3 +5,4 @@ cypari2
 gmpy2
 python-flint
 flasks
+factordb-pycli
