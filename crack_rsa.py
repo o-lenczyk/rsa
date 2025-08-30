@@ -147,7 +147,7 @@ def break_rsa_cado_nfs(n):
     cado_path = '/home/orest/repos/cado-nfs'
     try:
         command = f'./cado-nfs.py {n}'
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=1800, cwd=cado_path)
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=cado_path)
 
         if result.returncode != 0:
             print(f"CADO-NFS exited with an error: {result.stderr}")
