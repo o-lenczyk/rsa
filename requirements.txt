@@ -4,3 +4,4 @@ sympy==1.14.0
 cypari2
 gmpy2
 python-flint
+flasks

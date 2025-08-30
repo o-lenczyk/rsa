@@ -137,6 +137,51 @@ def break_rsa_flint(n):
     print("Failed to factor n with python-flint.")
     return None
 
+def break_rsa_cado_nfs(n):
+    print("Factoring with CADO-NFS...")
+    # CADO-NFS is optimized for large numbers and may fail on small inputs.
+    # We'll set a minimum bit length for the number to be factored.
+    if n.bit_length() < 200:
+        print("Number is too small for CADO-NFS, skipping.")
+        return None
+    cado_path = '/home/orest/repos/cado-nfs'
+    try:
+        command = f'./cado-nfs.py {n}'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=1800, cwd=cado_path)
+
+        if result.returncode != 0:
+            print(f"CADO-NFS exited with an error: {result.stderr}")
+            return None
+
+        # CADO-NFS prints the factors on separate lines.
+        lines = result.stdout.strip().split('\n')
+        factors = [int(line) for line in lines if line.isdigit()]
+        
+        if len(factors) == 2:
+            p = factors[0]
+            q = factors[1]
+            if p * q == n:
+                return p, q
+        elif len(factors) > 2:
+             for i in range(len(factors)):
+                for j in range(i + 1, len(factors)):
+                    if factors[i] * factors[j] == n:
+                        return factors[i], factors[j]
+
+        print(f"Failed to parse factors from CADO-NFS output.")
+        print("CADO-NFS stdout:", result.stdout)
+        return None
+
+    except FileNotFoundError:
+        print(f"cado-nfs.py not found in {cado_path}. Please check the path.")
+        return None
+    except subprocess.TimeoutExpired:
+        print("CADO-NFS took too long to execute and was terminated.")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred while running CADO-NFS: {e}")
+        return None
+
 def break_rsa_yafu(n):
     print("Factoring with YAFU...")
     try:
@@ -193,7 +238,8 @@ if __name__ == "__main__":
     print("10. cypari2 (Pari/GP)")
     print("11. python-flint")
     print("12. YAFU (standalone tool)")
-    algo_choice = input("Enter 1-12: ").strip()
+    print("13. CADO-NFS (standalone tool)")
+    algo_choice = input("Enter 1-13: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -231,6 +277,9 @@ if __name__ == "__main__":
     elif algo_choice == "12":
         break_rsa = break_rsa_yafu
         algo_name = "YAFU"
+    elif algo_choice == "13":
+        break_rsa = break_rsa_cado_nfs
+        algo_name = "CADO-NFS"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division
