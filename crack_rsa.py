@@ -6,6 +6,9 @@ from rsa_from_scratch import generate_keypair, encrypt, decrypt
 from Crypto.Util.number import getPrime
 from sympy.ntheory import factorint
 import gmpy2
+import requests
+import json
+from config import WOLFRAM_ALPHA_APP_ID
 
 def pollards_rho(n):
     # Simple Pollard's Rho implementation for factoring n
@@ -246,6 +249,82 @@ def break_rsa_yafu(n):
         print(f"An unexpected error occurred while running YAFU: {e}")
         return None
 
+def break_rsa_wolframalpha(n):
+    print("Factoring with Wolfram Alpha...")
+    app_id = WOLFRAM_ALPHA_APP_ID
+    if not app_id or app_id == 'YOUR_WOLFRAM_ALPHA_APP_ID':
+        print("Wolfram Alpha App ID not configured.")
+        return None
+
+    url = "https://api.wolframalpha.com/v2/query"
+    params = {
+        "input": f"FactorInteger[{n}]",
+        "appid": app_id,
+        "output": "JSON",
+        "format": "plaintext",
+    }
+
+    try:
+        resp = requests.get(url, params=params, timeout=12)
+        resp.raise_for_status()
+        data = resp.json()
+
+        qres = data.get("queryresult", {})
+        if not qres.get("success", False):
+            # Sometimes WA succeeds but 'success' is False; keep going to parse pods anyway
+            if not qres.get("pods"):
+                print("Wolfram Alpha did not return pods.")
+                return None
+
+        # Prefer 'Prime factorization' or 'Result' pods; fall back to any pod with 'factor'
+        pods = qres.get("pods", [])
+        candidate_pods = []
+        for pod in pods:
+            title = (pod.get("title") or "").lower()
+            if "prime factorization" in title or title == "result" or "factor" in title:
+                candidate_pods.append(pod)
+
+        factors = []
+        for pod in candidate_pods:
+            for sub in pod.get("subpods", []):
+                text = sub.get("plaintext")
+                factors = _parse_walpha_factor_text(text)
+                if factors:
+                    # Try to find p,q with product n (RSA)
+                    for i in range(len(factors)):
+                        for j in range(i + 1, len(factors)):
+                            if factors[i] * factors[j] == n:
+                                return factors[i], factors[j]
+                    # If exactly two factors and they multiply to n, return them
+                    if len(factors) == 2 and factors[0] * factors[1] == n:
+                        return factors[0], factors[1]
+        print("Failed to parse factors from Wolfram Alpha output.")
+        return None
+
+    except Exception as e:
+        print(f"Wolfram Alpha API error: {e}")
+        return None
+
+def _parse_walpha_factor_text(s: str):
+    """Parse plaintext like '181 × 227' or '3^2 * 5 * 7' (optionally 'n = ...')."""
+    if not s:
+        return []
+    # Keep only the RHS if an '=' appears
+    if '=' in s:
+        s = s.split('=', 1)[1]
+    # Normalize separators
+    s = s.replace('×', '*').replace('·', '*').replace(' ', '')
+    # Extract tokens like 123 or 123^4
+    tokens = re.findall(r'\d+(?:\^\d+)?', s)
+    factors = []
+    for tok in tokens:
+        if '^' in tok:
+            base, exp = tok.split('^', 1)
+            factors.extend([int(base)] * int(exp))
+        else:
+            factors.append(int(tok))
+    return factors
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
@@ -263,7 +342,8 @@ if __name__ == "__main__":
     print("12. YAFU (standalone tool)")
     print("13. CADO-NFS (standalone tool)")
     print("14. FactorDB (online database)")
-    algo_choice = input("Enter 1-14: ").strip()
+    print("15. Wolfram Alpha (online API)")
+    algo_choice = input("Enter 1-15: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -307,6 +387,9 @@ if __name__ == "__main__":
     elif algo_choice == "14":
         break_rsa = break_rsa_factordb
         algo_name = "FactorDB"
+    elif algo_choice == "15":
+        break_rsa = break_rsa_wolframalpha
+        algo_name = "Wolfram Alpha"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division
