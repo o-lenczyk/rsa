@@ -1,4 +1,6 @@
 import time
+import subprocess
+import re
 from rsa_from_scratch import generate_keypair, encrypt, decrypt
 from Crypto.Util.number import getPrime
 from sympy.ntheory import factorint
@@ -135,6 +137,47 @@ def break_rsa_flint(n):
     print("Failed to factor n with python-flint.")
     return None
 
+def break_rsa_yafu(n):
+    print("Factoring with YAFU...")
+    try:
+        command = f'yafu "factor({n})"'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=600)
+        
+        if result.returncode != 0:
+            print(f"YAFU exited with an error: {result.stderr}")
+            return None
+
+        # YAFU prints factors in the format PXX = ...
+        # We look for these lines to extract the prime factors.
+        factors = re.findall(r'P\d+ = (\d+)', result.stdout)
+        
+        if len(factors) == 2:
+            p = int(factors[0])
+            q = int(factors[1])
+            if p * q == n:
+                return p, q
+        # Handle cases where n is a product of more than two primes, find a valid pair.
+        elif len(factors) > 2:
+            primes = [int(f) for f in factors]
+            for i in range(len(primes)):
+                for j in range(i + 1, len(primes)):
+                    if primes[i] * primes[j] == n:
+                        return primes[i], primes[j]
+
+        print(f"Failed to parse factors from YAFU output.")
+        print("YAFU stdout:", result.stdout)
+        return None
+
+    except FileNotFoundError:
+        print("YAFU command not found. Please ensure it is installed and in your system's PATH.")
+        return None
+    except subprocess.TimeoutExpired:
+        print("YAFU took too long to execute and was terminated.")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred while running YAFU: {e}")
+        return None
+
 # Update main algorithm selection
 if __name__ == "__main__":
     print("Choose factoring algorithm:")
@@ -149,7 +192,8 @@ if __name__ == "__main__":
     print("9. SageMath (factorization using Sage)")
     print("10. cypari2 (Pari/GP)")
     print("11. python-flint")
-    algo_choice = input("Enter 1-11: ").strip()
+    print("12. YAFU (standalone tool)")
+    algo_choice = input("Enter 1-12: ").strip()
 
     if algo_choice == "1":
         break_rsa = break_rsa_trial_division
@@ -184,12 +228,15 @@ if __name__ == "__main__":
     elif algo_choice == "11":
         break_rsa = break_rsa_flint
         algo_name = "python-flint"
+    elif algo_choice == "12":
+        break_rsa = break_rsa_yafu
+        algo_name = "YAFU"
     else:
         print("Invalid choice. Defaulting to trial division.")
         break_rsa = break_rsa_trial_division
         algo_name = "Trial division (pure Python)"
 
-    for bits in [8, 16, 32, 64, 128]:
+    for bits in [8, 16, 32, 64, 128, 256]:
         print(f"\n--- Testing RSA with {bits}-bit primes ---")
         p = getPrime(bits)
         q = getPrime(bits)
