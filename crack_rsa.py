@@ -105,6 +105,10 @@ def break_rsa_cypari2(n):
         print("cypari2 is not installed. Please install it with 'pip install cypari2'.")
         return None
     pari = cypari2.Pari()
+
+    new_stack_size_bytes = 100 * 1024 * 1024
+    pari.allocatemem(new_stack_size_bytes)
+
     print("Factoring with cypari2...")
     factors = pari.factor(n)
     # factors is a Gen object behaving like a list of [prime, exponent] pairs
