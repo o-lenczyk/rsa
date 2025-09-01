@@ -1,2 +1,6 @@
 __pycache__/
 config.py
+factor.json
+factor.log
+session.log
+siqs.dat

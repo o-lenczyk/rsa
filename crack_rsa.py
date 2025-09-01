@@ -399,7 +399,7 @@ if __name__ == "__main__":
         break_rsa = break_rsa_trial_division
         algo_name = "Trial division (pure Python)"
 
-    for bits in [8, 16, 32, 34,36,38,40,64, 128, 256]:
+    for bits in [8, 16, 32, 34,36,38,40,64, 128, 130, 132, 256]:
         print(f"\n--- Testing RSA with {bits}-bit primes ---")
         p = getPrime(bits)
         q = getPrime(bits)
