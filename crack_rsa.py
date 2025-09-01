@@ -188,17 +188,22 @@ def break_rsa_factordb(n):
         f = FactorDB(n)
         f.connect()
         factors = f.get_factor_list()
-        if len(factors) == 2:
-            p = factors[0]
-            q = factors[1]
-            if p * q == n:
-                return p, q
-        elif len(factors) > 2:
-             for i in range(len(factors)):
-                for j in range(i + 1, len(factors)):
-                    if factors[i] * factors[j] == n:
-                        return factors[i], factors[j]
-        print(f"Failed to parse factors from factordb output.")
+
+        # If FactorDB returns the number itself, it means it's not factored.
+        if len(factors) == 1 and factors[0] == n:
+            print("FactorDB does not have the factors for this number.")
+            return None
+
+        # Find any non-trivial factor. For RSA, n=p*q, so any factor is enough.
+        for p_candidate in factors:
+            if 1 < p_candidate < n and n % p_candidate == 0:
+                p = p_candidate
+                q = n // p
+                if p * q == n:
+                    # Found them
+                    return p, q
+        
+        print(f"Failed to parse factors from factordb output. Factors found: {factors}")
         return None
     except Exception as e:
         print(f"An unexpected error occurred while running factordb: {e}")
