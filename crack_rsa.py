@@ -147,31 +147,22 @@ def break_rsa_flint(n):
 
 def break_rsa_cado_nfs(n):
     print("Factoring with CADO-NFS...")
-    # CADO-NFS is optimized for large numbers and may fail on small inputs.
-    # We'll set a minimum bit length for the number to be factored.
     if n.bit_length() < 200:
         print("Number is too small for CADO-NFS, skipping.")
         return None
-    cado_path = '/home/orest/repos/cado-nfs'
+    cado_path = '/home/orest/repos/cado-nfs' # Ensure this path is correct
     try:
-        command = f'./cado-nfs.py {n}'
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=cado_path)
+        # FIX 1: Pass command as a list to avoid shell=True
+        command = ['./cado-nfs.py', str(n)]
+        result = subprocess.run(command, capture_output=True, text=True, cwd=cado_path, check=True)
 
-        if result.returncode != 0:
-            print(f"CADO-NFS exited with an error: {result.stderr}")
-            return None
-
-        # CADO-NFS prints the factors on separate lines.
-        lines = result.stdout.strip().split('\n')
-        factors = [int(line) for line in lines if line.isdigit()]
+        # FIX 2: Split by any whitespace to handle both space and newline separators
+        tokens = result.stdout.strip().split()
+        factors = [int(tok) for tok in tokens if tok.isdigit()]
         
-        if len(factors) == 2:
-            p = factors[0]
-            q = factors[1]
-            if p * q == n:
-                return p, q
-        elif len(factors) > 2:
-             for i in range(len(factors)):
+        # This logic to find a pair of factors that multiply to n is already robust.
+        if len(factors) >= 2:
+            for i in range(len(factors)):
                 for j in range(i + 1, len(factors)):
                     if factors[i] * factors[j] == n:
                         return factors[i], factors[j]
@@ -183,8 +174,9 @@ def break_rsa_cado_nfs(n):
     except FileNotFoundError:
         print(f"cado-nfs.py not found in {cado_path}. Please check the path.")
         return None
-    except subprocess.TimeoutExpired:
-        print("CADO-NFS took too long to execute and was terminated.")
+    except subprocess.CalledProcessError as e:
+        print(f"CADO-NFS exited with an error.")
+        print(f"Stderr: {e.stderr}")
         return None
     except Exception as e:
         print(f"An unexpected error occurred while running CADO-NFS: {e}")
