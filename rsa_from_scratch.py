@@ -5,8 +5,7 @@ from Crypto.Util.number import getPrime as crypto_getPrime, isPrime
 
 def isPrime(n):
     """
-    Custom primality test using trial division with small primes.
-    For larger numbers, this is probabilistic but good enough for our purposes.
+    YAFU-based primality test - much faster and more reliable than custom implementation.
     """
     if n <= 1:
         return False
@@ -15,22 +14,27 @@ def isPrime(n):
     if n % 2 == 0 or n % 3 == 0:
         return False
 
-    # Use small primes for trial division
-    small_primes = get_small_primes(min(10000, int(n**0.5) + 1))
-    for prime in small_primes:
-        if prime * prime > n:
-            break
-        if n % prime == 0:
+    try:
+        command = f'yafu "isprime({n})"'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+
+        if result.returncode != 0:
+            print(f"YAFU primality test failed: {result.stderr}")
             return False
 
-    # For larger numbers, do additional checks
-    i = small_primes[-1] + 2 if small_primes else 5
-    while i * i <= n:
-        if n % i == 0 or n % (i + 2) == 0:
-            return False
-        i += 6
+        # YAFU returns "1" for prime, "0" for composite
+        return "1" in result.stdout
 
-    return True
+    except FileNotFoundError:
+        print("YAFU not found, falling back to basic primality test")
+        # Fallback to basic test
+        for i in range(5, int(n**0.5) + 1, 6):
+            if n % i == 0 or n % (i + 2) == 0:
+                return False
+        return True
+    except subprocess.TimeoutExpired:
+        print(f"YAFU primality test timed out for {n}")
+        return False
 
 def crypto_getPrime(bits):
     """
@@ -257,7 +261,7 @@ def decrypt(pk, ciphertext):
 if __name__ == '__main__':
     print("RSA Encrypter/ Decrypter")
 
-    choice = input("Choose an option: (1) Encrypt/Decrypt a new message (secure with safe primes), (2) Decrypt a message with a key, or (3) Generate keys with smooth primes for testing Pollard's p-1: ")
+    choice = input("Choose an option: (1) Encrypt/Decrypt a new message (standard RSA), (2) Decrypt a message with a key, (3) Generate keys with smooth primes for testing Pollard's p-1, or (4) Generate secure keys with safe primes: ")
 
     if choice == '1':
         try:
@@ -266,9 +270,9 @@ if __name__ == '__main__':
             print("Invalid bit size. Using default 64 bits.")
             bits = 64
 
-        print("Generating secure primes (this might take a while)...")
-        p = getPrime(bits)
-        q = getPrime(bits)
+        print("Generating standard RSA primes...")
+        p = crypto_getPrime(bits)
+        q = crypto_getPrime(bits)
         
         public, private = generate_keypair(p, q)
         
@@ -312,12 +316,12 @@ if __name__ == '__main__':
         except ValueError:
             print("Invalid bit size. Using default 64 bits.")
             bits = 64
-            
+
         print("Generating p (this might take a while)...")
         p = getPrimeSmooth(bits)
         print("Generating q (this might take a while)...")
         q = getPrimeSmooth(bits)
-        
+
         # Ensure p and q are not the same
         while p == q:
             print("p and q were the same, regenerating q...")
@@ -326,18 +330,43 @@ if __name__ == '__main__':
         print(f"\nGenerated Primes (vulnerable to Pollard's p-1):")
         print(f"p = {p}")
         print(f"q = {q}")
-        
+
         public, private = generate_keypair(p, q)
-        
+
         print("\nYour public key is ", public ," and your private key is ", private)
-        
+
         message = input("Enter a message to encrypt with your public key: ")
         encrypted_msg = encrypt(public, message)
-        
+
         print("Your encrypted message is: ")
         print(' '.join(map(str, encrypted_msg)))
-        
+
         print("\nDecrypting message with private key ", private ," . . .")
+        print("Your message is:")
+        print(decrypt(private, encrypted_msg))
+
+    elif choice == '4':
+        try:
+            bits = int(input("Enter bit size for p and q (e.g., 8, 16, 32, 64): "))
+        except ValueError:
+            print("Invalid bit size. Using default 64 bits.")
+            bits = 64
+
+        print("Generating secure safe primes (this might take a while)...")
+        p = getPrime(bits)
+        q = getPrime(bits)
+
+        public, private = generate_keypair(p, q)
+
+        print("Your public key is ", public ," and your private key is ", private)
+
+        message = input("Enter a message to encrypt with your public key: ")
+        encrypted_msg = encrypt(public, message)
+
+        print("Your encrypted message is: ")
+        print(' '.join(map(str, encrypted_msg)))
+
+        print("Decrypting message with private key ", private ," . . .")
         print("Your message is:")
         print(decrypt(private, encrypted_msg))
 
