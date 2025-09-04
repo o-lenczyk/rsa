@@ -1,7 +1,48 @@
 import random
 import subprocess
 import re
-from Crypto.Util.number import getPrime, isPrime
+from Crypto.Util.number import getPrime as crypto_getPrime, isPrime
+
+def isPrime(n):
+    """
+    Custom primality test using trial division with small primes.
+    For larger numbers, this is probabilistic but good enough for our purposes.
+    """
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+
+    # Use small primes for trial division
+    small_primes = get_small_primes(min(10000, int(n**0.5) + 1))
+    for prime in small_primes:
+        if prime * prime > n:
+            break
+        if n % prime == 0:
+            return False
+
+    # For larger numbers, do additional checks
+    i = small_primes[-1] + 2 if small_primes else 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+
+    return True
+
+def crypto_getPrime(bits):
+    """
+    Custom prime generation - generates a random prime of specified bit length.
+    """
+    while True:
+        # Generate random odd number of correct bit length
+        candidate = random.getrandbits(bits)
+        candidate |= (1 << (bits - 1)) | 1  # Ensure correct bit length and odd
+
+        if isPrime(candidate):
+            return candidate
 
 def get_small_primes(limit):
     primes = []
@@ -56,6 +97,30 @@ def factor_with_yafu(n):
     except Exception as e:
         print(f"An unexpected error occurred while running YAFU: {e}")
         return None
+
+def getPrime(bits):
+    """
+    Generates a safe prime p of 'bits' length.
+    A safe prime is a prime p where (p-1)/2 is also prime.
+    This makes p-1 have a large prime factor, protecting against Pollard's p-1 attack.
+    """
+    while True:
+        # Generate a random prime q of (bits-1) length
+        q = crypto_getPrime(bits - 1)
+        # Compute p = 2*q + 1
+        p = 2 * q + 1
+        # Check if p is prime and has correct bit length
+        if isPrime(p) and p.bit_length() == bits:
+            print(f"Generated safe prime p = {p}")
+            print(f"(p-1)/2 = {q} (also prime)")
+            return p
+
+def getUnsafePrime(bits):
+    """
+    Generates a regular prime p of 'bits' length (not necessarily safe).
+    This is vulnerable to Pollard's p-1 attack if p-1 is smooth.
+    """
+    return crypto_getPrime(bits)
 
 def getPrimeSmooth(bits, max_attempts_per_bound=10000):
     """
@@ -192,7 +257,7 @@ def decrypt(pk, ciphertext):
 if __name__ == '__main__':
     print("RSA Encrypter/ Decrypter")
 
-    choice = input("Choose an option: (1) Encrypt/Decrypt a new message, (2) Decrypt a message with a key, or (3) Generate keys with smooth primes for testing Pollard's p-1: ")
+    choice = input("Choose an option: (1) Encrypt/Decrypt a new message (secure with safe primes), (2) Decrypt a message with a key, or (3) Generate keys with smooth primes for testing Pollard's p-1: ")
 
     if choice == '1':
         try:
@@ -201,6 +266,7 @@ if __name__ == '__main__':
             print("Invalid bit size. Using default 64 bits.")
             bits = 64
 
+        print("Generating secure primes (this might take a while)...")
         p = getPrime(bits)
         q = getPrime(bits)
         
